@@ -258,12 +258,27 @@ let etapaActual = parseInt(localStorage.getItem("la_pinada_etapa")) || 0;
 let juegoTerminado = localStorage.getItem("la_pinada_terminado") === "true";
 let watchId = null;
 
-// Inicializar interfaz según estado guardado
+// Inicializar interfaz y gestionar recarga de página
 window.addEventListener("DOMContentLoaded", () => {
-    if (juegoTerminado) {
-        mostrarPantallaFinal();
-    } else if (juegoIniciado) {
-        document.getElementById("label-etapa").innerText = PARADAS[etapaActual].label;
+    if (juegoIniciado || juegoTerminado) {
+        const reiniciar = confirm("¿Quieres reiniciar el juego y volver al inicio?");
+        if (reiniciar) {
+            localStorage.removeItem("la_pinada_iniciado");
+            localStorage.removeItem("la_pinada_modal");
+            localStorage.removeItem("la_pinada_etapa");
+            localStorage.removeItem("la_pinada_terminado");
+            juegoIniciado = false;
+            modalMostrado = false;
+            etapaActual = 0;
+            juegoTerminado = false;
+            document.getElementById("label-etapa").innerText = "INICIO";
+        } else {
+            if (juegoTerminado) {
+                mostrarPantallaFinal();
+            } else {
+                document.getElementById("label-etapa").innerText = PARADAS[etapaActual].label;
+            }
+        }
     } else {
         document.getElementById("label-etapa").innerText = "INICIO";
     }
