@@ -208,7 +208,6 @@ const PARADAS = [
 const RADIO_ACTIVACION = 10; // 10 metros de radio
 
 // Estado del juego almacenado localmente
-// juegoIniciado: false (en INICIO), true (juego en curso o completado)
 let juegoIniciado = localStorage.getItem("la_pinada_iniciado") === "true";
 let etapaActual = parseInt(localStorage.getItem("la_pinada_etapa")) || 0;
 let juegoTerminado = localStorage.getItem("la_pinada_terminado") === "true";
@@ -315,7 +314,7 @@ function procesarCoordenadas(lat, lon) {
     const btnAvanzar = document.getElementById("btn-avanzar");
 
     if (!juegoIniciado) {
-        // Validación estricta del punto de inicio (< 10 metros)
+        // Validación estricta del punto de inicio (< 10 metros) sin mostrar distancias si está fuera
         const distInicio = calcularHaversine(lat, lon, PUNTO_INICIO.lat, PUNTO_INICIO.lon);
         if (distInicio <= RADIO_ACTIVACION) {
             juegoIniciado = true;
@@ -328,9 +327,9 @@ function procesarCoordenadas(lat, lon) {
             displayMetros.style.color = "#22c55e";
             status.innerText = "¡Punto de inicio validado! Ya puedes consultar la primera distancia.";
         } else {
-            displayMetros.innerText = `${distInicio} m`;
+            displayMetros.innerText = "---";
             displayMetros.style.color = "#ff4444";
-            status.innerText = `Debes estar a menos de 10m del INICIO (Estás a ${distInicio}m).`;
+            status.innerText = "Estás fuera del rango del punto de inicio.";
         }
         return;
     }
