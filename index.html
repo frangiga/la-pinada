@@ -183,7 +183,7 @@ footer a:hover {
         <div class="gc-code">GCBXK9R</div>
     </header>
     <main class="display-card">
-        <div class="label" id="label-etapa">PARADA 1</div>
+        <div class="label" id="label-etapa">INICIO</div>
         <div id="distancia-display" class="value">-- m</div>
         <div id="status-display" class="status-gps">Pulsa para consultar ubicación</div>
         <button id="btn-avanzar" class="btn-query btn-advance" onclick="avanzarParada()">Tengo el dato. Avanzar.</button>
@@ -195,17 +195,21 @@ footer a:hover {
 </div>
 
 <script>
-// Paradas secuenciales del juego (Latitud y Longitud en decimales)
+// Punto de Inicio y Paradas secuenciales del juego (Latitud y Longitud en decimales)
+const PUNTO_INICIO = { lat: 39.5492000, lon: -1.2822500 }; // N 39° 32.952′ W 1° 16.935′
+
 const PARADAS = [
-    { num: 1, lat: 39.5492000, lon: -1.2822500, label: "PARADA 1" }, // N 39° 32.952′ W 1° 16.935′
-    { num: 2, lat: 39.5490833, lon: -1.2840167, label: "PARADA 2" }, // N 39° 32.945′ W 1° 17.041′
-    { num: 3, lat: 39.5482333, lon: -1.2855667, label: "PARADA 3" }, // N 39° 32.894′ W 1° 17.134′
-    { num: 4, lat: 39.5479833, lon: -1.2822000, label: "PARADA 4 (FINAL)" } // N 39° 32.879′ W 1° 16.932′
+    { num: 1, lat: 39.5490833, lon: -1.2840167, label: "Etapa 1" }, // N 39° 32.945′ W 1° 17.041′
+    { num: 2, lat: 39.5482333, lon: -1.2855667, label: "Etapa 2" }, // N 39° 32.894′ W 1° 17.134′
+    { num: 3, lat: 39.5468833, lon: -1.2844833, label: "Etapa 3" }, // N 39° 32.813′ W 1° 17.069′
+    { num: 4, lat: 39.5479833, lon: -1.2822000, label: "Etapa 4 (Final)" } // N 39° 32.879′ W 1° 16.932′
 ];
 
 const RADIO_ACTIVACION = 10; // 10 metros de radio
 
 // Estado del juego almacenado localmente
+// juegoIniciado: false (en INICIO), true (juego en curso o completado)
+let juegoIniciado = localStorage.getItem("la_pinada_iniciado") === "true";
 let etapaActual = parseInt(localStorage.getItem("la_pinada_etapa")) || 0;
 let juegoTerminado = localStorage.getItem("la_pinada_terminado") === "true";
 let watchId = null;
@@ -214,8 +218,10 @@ let watchId = null;
 window.addEventListener("DOMContentLoaded", () => {
     if (juegoTerminado) {
         mostrarPantallaFinal();
-    } else if (etapaActual > 0) {
+    } else if (juegoIniciado) {
         document.getElementById("label-etapa").innerText = PARADAS[etapaActual].label;
+    } else {
+        document.getElementById("label-etapa").innerText = "INICIO";
     }
 });
 
@@ -308,6 +314,28 @@ function procesarCoordenadas(lat, lon) {
     const status = document.getElementById("status-display");
     const btnAvanzar = document.getElementById("btn-avanzar");
 
+    if (!juegoIniciado) {
+        // Validación estricta del punto de inicio (< 10 metros)
+        const distInicio = calcularHaversine(lat, lon, PUNTO_INICIO.lat, PUNTO_INICIO.lon);
+        if (distInicio <= RADIO_ACTIVACION) {
+            juegoIniciado = true;
+            localStorage.setItem("la_pinada_iniciado", "true");
+            etapaActual = 0;
+            localStorage.setItem("la_pinada_etapa", etapaActual);
+            
+            document.getElementById("label-etapa").innerText = PARADAS[etapaActual].label;
+            displayMetros.innerText = "¡INICIO!";
+            displayMetros.style.color = "#22c55e";
+            status.innerText = "¡Punto de inicio validado! Ya puedes consultar la primera distancia.";
+        } else {
+            displayMetros.innerText = `${distInicio} m`;
+            displayMetros.style.color = "#ff4444";
+            status.innerText = `Debes estar a menos de 10m del INICIO (Estás a ${distInicio}m).`;
+        }
+        return;
+    }
+
+    // Juego ya iniciado: calcular metros hacia la etapa actual correspondiente
     const destino = PARADAS[etapaActual];
     const metros = calcularHaversine(lat, lon, destino.lat, destino.lon);
 
@@ -338,8 +366,8 @@ function avanzarParada() {
         document.getElementById("status-display").innerText = "Pulsa para consultar nueva ubicación";
     } else {
         // Llegada a la cuarta parada (final)
-        juegoTerminado = localStorage.setItem("la_pinada_terminado", "true");
         juegoTerminado = true;
+        localStorage.setItem("la_pinada_terminado", "true");
         mostrarPantallaFinal();
     }
 }
@@ -348,7 +376,7 @@ function mostrarPantallaFinal() {
     document.getElementById("label-etapa").innerText = "¡JUEGO COMPLETADO!";
     document.getElementById("distancia-display").innerText = "FIN";
     document.getElementById("distancia-display").style.color = "#4ade80";
-    document.getElementById("status-display").innerText = "Has superado todas las paradas de La Pinada.";
+    document.getElementById("status-display").innerText = "Has superado todas las etapas de La Pinada.";
     document.getElementById("btn-avanzar").style.display = "none";
     
     const btnConsultar = document.getElementById("btn-consultar");
